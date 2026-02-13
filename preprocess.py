@@ -7,7 +7,7 @@ import json
 from src.folderconstants import *
 from shutil import copyfile
 
-datasets = ['synthetic', 'SMD', 'SWaT', 'SMAP', 'MSL', 'WADI', 'MSDS', 'UCR', 'MBA', 'NAB']
+datasets = ['synthetic', 'SMD', 'SWaT', 'SMAP', 'MSL', 'WADI', 'MSDS', 'UCR', 'MBA', 'NAB', 'TEST']
 
 wadi_drop = ['2_LS_001_AL', '2_LS_002_AL','2_P_001_STATUS','2_P_002_STATUS']
 
@@ -196,6 +196,44 @@ def load_data(dataset):
 			labels[ls + i, :] = 1
 		for file in ['train', 'test', 'labels']:
 			np.save(os.path.join(folder, f'{file}.npy'), eval(file))
+	elif dataset == 'TEST':
+		dataset_folder = 'data/TEST'
+		file_path = os.path.join(dataset_folder, 'scaling_data.parquet')
+		
+		# Parquet 파일 읽기
+		df = pd.read_parquet(file_path)
+		
+		# data_labeling == 0 (정상) 데이터를 train/test로 분리
+		normal_df = df[df['data_labeling'] == 0].copy()
+		abnormal_df = df[df['data_labeling'] == 1].copy()
+		
+		# 정상 데이터를 train/test로 분리 (시간 순서 유지)
+		# Train: 앞부분 80%, Test: 뒷부분 20% (또는 이상 데이터와 비슷한 양)
+		split_idx = len(normal_df) - len(abnormal_df)  # 이상 데이터와 비슷한 양만 test에 포함
+		if split_idx < len(normal_df) * 0.5:  # 최소 50%는 train에 포함
+			split_idx = int(len(normal_df) * 0.8)  # 80% train, 20% test
+		
+		train_df = normal_df.iloc[:split_idx].copy()
+		normal_test_df = normal_df.iloc[split_idx:].copy()
+		
+		# Test 데이터 합치기 (정상 일부 + 이상 전체)
+		test_df = pd.concat([normal_test_df, abnormal_df], ignore_index=True)
+		
+		# 센서 데이터만 추출 (이미 정규화됨)
+		sensor_cols = ['pressure_sensor_018', 'pressure_sensor_019']
+		train_data = train_df[sensor_cols].values.astype(np.float64)
+		test_data = test_df[sensor_cols].values.astype(np.float64)
+		
+		# Labels 생성: test에서 data_labeling == 1인 부분만 1로 표시
+		labels = (test_df['data_labeling'] == 1).values.astype(np.float64).reshape(-1, 1)
+		# 데이터 feature 수에 맞게 labels 확장 (각 센서마다 동일한 label)
+		labels = np.repeat(labels, test_data.shape[1], axis=1)
+		
+		# 저장
+		np.save(os.path.join(folder, 'train.npy'), train_data)
+		np.save(os.path.join(folder, 'test.npy'), test_data)
+		np.save(os.path.join(folder, 'labels.npy'), labels)
+		print(f"TEST dataset processed: train shape {train_data.shape}, test shape {test_data.shape}, labels shape {labels.shape}")
 	else:
 		raise Exception(f'Not Implemented. Check one of {datasets}')
 

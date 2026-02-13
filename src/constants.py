@@ -2,6 +2,8 @@ from src.parser import *
 from src.folderconstants import *
 
 # Threshold parameters
+# POT(Peaks Over Threshold) 방법에서 이상치 임계값 계산
+# 구조: [(baseline, multiplier), (TranAD_baseline, TranAD_multiplier)]
 lm_d = {
 		'SMD': [(0.99995, 1.04), (0.99995, 1.06)],
 		'synthetic': [(0.999, 1), (0.999, 1)],
@@ -13,10 +15,12 @@ lm_d = {
 		'WADI': [(0.99, 1), (0.999, 1)],
 		'MSDS': [(0.91, 1), (0.9, 1.04)],
 		'MBA': [(0.87, 1), (0.93, 1.04)],
+		'TEST': [(0.99, 1), (0.99, 1)],
 	}
 lm = lm_d[args.dataset][1 if 'TranAD' in args.model else 0]
 
 # Hyperparameters
+# 모델 학습 시 optimizer의 학습률 (데이터셋 크기와 특성에 따라 조정)
 lr_d = {
 		'SMD': 0.0001, 
 		'synthetic': 0.0001, 
@@ -28,10 +32,12 @@ lr_d = {
 		'UCR': 0.006, 
 		'NAB': 0.009, 
 		'MBA': 0.001, 
+		'TEST': 0.001, 
 	}
 lr = lr_d[args.dataset]
 
 # Debugging
+# MERLIN에서 사용하는 percentile 값
 percentiles = {
 		'SMD': (98, 2000),
 		'synthetic': (95, 10),
@@ -43,6 +49,7 @@ percentiles = {
 		'UCR': (98, 2),
 		'NAB': (98, 2),
 		'MBA': (99, 2),
+		'TEST': (95, 10),
 	}
 percentile_merlin = percentiles[args.dataset][0]
 cvp = percentiles[args.dataset][1]

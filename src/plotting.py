@@ -4,7 +4,7 @@ import statistics
 import os, torch
 import numpy as np
 
-plt.style.use(['science', 'ieee'])
+# plt.style.use(['science', 'ieee'])  # SciencePlots가 없으면 주석 처리
 plt.rcParams["text.usetex"] = False
 plt.rcParams['figure.figsize'] = 6, 2
 
